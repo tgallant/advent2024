@@ -38,18 +38,35 @@
 (defun nilp (val)
   (eq val nil))
 
+(defun || (a b)
+  (string-to-number
+   (string-join (list (number-to-string a) (number-to-string b)))))
+
 (defconst ops '(+ *))
+(defconst ops-v2 '(+ * ||))
 
 (defun step (acc cur)
   (append acc (mapcar (lambda (op) (append cur (list op))) ops)))
+
+(defun step-v2 (acc cur)
+  (append acc (mapcar (lambda (op) (append cur (list op))) ops-v2)))
 
 (defun make-next (lst)
   (if (eq nil lst) (list '(+) '(*))
     (cl-reduce 'step lst :initial-value nil)))
 
+(defun make-next-v2 (lst)
+  (if (eq nil lst) (list '(+) '(*) '(||))
+    (cl-reduce 'step-v2 lst :initial-value nil)))
+
 (defun make-ops (count)
   (cl-loop repeat count with next = nil
            do (setq next (make-next next))
+           finally return next))
+
+(defun make-ops-v2 (count)
+  (cl-loop repeat count with next = nil
+           do (setq next (make-next-v2 next))
            finally return next))
 
 (defun operate (acc cur)
@@ -57,8 +74,8 @@
         (rst (cdr acc)))
     (cons (funcall cur val (car rst)) (cdr rst))))
 
-(defun prepare-eq (lst ops)
-  (car (cl-reduce 'operate ops :initial-value lst)))
+(defun prepare-eq (lst oprs)
+  (car (cl-reduce 'operate oprs :initial-value lst)))
 
 (defun make-eqs (lst)
   (mapcar (lambda (oprs) (prepare-eq lst oprs))
@@ -69,9 +86,20 @@
     (cl-loop for oprs in (make-ops (- (length lst) 1))
              if (= v (prepare-eq lst oprs)) return v)))
 
+(defun check-validity-v2 (data)
+  (cl-destructuring-bind (v lst) data
+    (cl-loop for oprs in (make-ops-v2 (- (length lst) 1))
+             if (= v (prepare-eq lst oprs)) return v)))
+
 (defun 2024-07-part1 (input)
   (->> (parse-input input)
        (mapcar 'check-validity)
+       (cl-remove-if 'nilp)
+       (apply '+)))
+
+(defun 2024-07-part2 (input)
+  (->> (parse-input input)
+       (mapcar 'check-validity-v2)
        (cl-remove-if 'nilp)
        (apply '+)))
 
@@ -80,5 +108,7 @@
 
 (defcheck* 2024-07-part1 testfile 3749)
 (defcheck* 2024-07-part1 inputfile 5837374519342)
+(defcheck* 2024-07-part2 testfile 11387)
+(defcheck* 2024-07-part2 inputfile 11387)
 
-(solve "2024-07")
+;; (solve "2024-07")
