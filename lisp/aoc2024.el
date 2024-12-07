@@ -22,14 +22,14 @@
   "Inserts INITIAL-FORM as first argument into the first of FORMS, the result
 into the next, etc., before evaluation.  FORMS are treated as list designators."
   (cl-reduce (simple-inserter #'insert-first)
-          forms
-          :initial-value initial-form))
+             forms
+             :initial-value initial-form))
 
 (defmacro ->> (initial-form &rest forms)
   "Like ->, but the forms are inserted as last argument instead of first."
   (cl-reduce (simple-inserter #'insert-last)
-          forms
-          :initial-value initial-form))
+             forms
+             :initial-value initial-form))
 
 (defun diamond-inserter (insert-fun)
   (simple-inserter (lambda (acc next)
@@ -46,15 +46,15 @@ element, each such symbol is substituted by the primary result of the form
 accumulated so far, instead of it being inserted as first argument.  Also known
 as diamond wand."
   (cl-reduce (diamond-inserter #'insert-first)
-          forms
-          :initial-value initial-form))
+             forms
+             :initial-value initial-form))
 
 (defmacro -<>> (initial-form &rest forms)
   "Like -<>, but if a form has no symbol named <>, the insertion is done at the
 end like in ->>.  Also known as diamond spear."
   (cl-reduce (diamond-inserter #'insert-last)
-          forms
-          :initial-value initial-form))
+             forms
+             :initial-value initial-form))
 
 (defun <>p (form)
   "Predicate identifying the placeholders for the -<> and -<>> macros."
@@ -79,6 +79,11 @@ operator."
     (insert-file-contents path)
     (split-string (buffer-string) "\n" omit-null)))
 
+(defun read-contents (path)
+  (with-temp-buffer
+    (insert-file-contents path)
+    (buffer-string)))
+
 (defmacro defsolution (name &rest forms)
   `(defun ,name (input)
      ,(append `(-<>> (read-lines input t)) forms)))
@@ -95,7 +100,7 @@ operator."
            (fn-input (cadr (split-string (cadr fn) "\\." t)))
            (test-name (intern (string-join `(,name ,fn-name ,fn-input) "-"))))
       (eval `(ert-deftest ,test-name ()
-         (should (equal ,fn ,val))) t)))
+               (should (equal ,fn ,val))) t)))
   (mapc 'make-test forms))
 
 (defun make-test-name (fn in)
@@ -105,6 +110,11 @@ operator."
   (let ((test-name (make-test-name fn in)))
     `(ert-deftest ,test-name ()
        (should (equal (funcall (quote ,fn) (read-lines ,in t)) ,expected)))))
+
+(defmacro defcheck* (fn in expected)
+  (let ((test-name (make-test-name fn in)))
+    `(ert-deftest ,test-name ()
+       (should (equal (funcall (quote ,fn) (read-contents ,in)) ,expected)))))
 
 (defun solve (name)
   (ert name))
