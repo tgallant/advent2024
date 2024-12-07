@@ -19,7 +19,7 @@ jobs:
       - name: Collect Solutions
         id: collect
         run: |
-          SOLUTIONS=$(ls lisp -I aoc* -I input | jq -R . | jq -s)
+          SOLUTIONS=$(ls lisp -I aoc* -I parsec.el -I input | jq -R . | jq -s)
           echo solutions=${SOLUTIONS} >> $GITHUB_OUTPUT
   solution:
     runs-on: ubuntu-latest
