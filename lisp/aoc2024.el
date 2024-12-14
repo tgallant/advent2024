@@ -74,6 +74,15 @@ operator."
 
 ;;; Advent of Code Helpers
 
+(defun split (str)
+  (string-split str "" t))
+
+(defun truep (val)
+  (eq val t))
+
+(defun nilp (val)
+  (eq val nil))
+
 (defun read-lines (path omit-null)
   (with-temp-buffer
     (insert-file-contents path)
@@ -118,6 +127,3 @@ operator."
 
 (defun solve (name)
   (ert name))
-
-(defun t2-hello ()
-  (+ 3 3))
