@@ -35,40 +35,45 @@
   (cond ((member (list b a) rules) nil)
         (t)))
 
+(defun find-invalid-pair (update rules)
+  (cl-loop for a from 0 to (- (length update) 2)
+           with invalid = nil
+           do (cl-loop for b from (1+ a) to (- (length update) 1)
+                       if (not (validp (nth a update) (nth b update) rules))
+                       do (setq invalid (list a b)))
+           if invalid return invalid))
+
 (defun collect-valid (data)
   (cl-destructuring-bind (rules updates) data
     (cl-loop for update in updates
-             with valid = nil
-             for invalid = nil
-             for len = (- (length update) 1)
-             for max = (- (length update) 2)
-             do (cl-loop for a from 0 to max
-                         for next = (+ a 1)
-                         do (cl-loop for b from next to len
-                                     if (not (validp (nth a update) (nth b update) rules))
-                                     do (setq invalid t)
-                                     and return nil)
-                         if invalid return nil)
-             if (not invalid) do (push update valid)
-             finally return valid)))
+             with pairs = nil
+             if (not (find-invalid-pair update rules))
+             do (push update pairs)
+             finally return pairs)))
 
-(defun collect-and-fix-invalid (data)
+(defun collect-invalid (data)
   (cl-destructuring-bind (rules updates) data
     (cl-loop for update in updates
-             with valid = nil
-             for invalid = nil
-             for len = (- (length update) 1)
-             for max = (- (length update) 2)
-             do (cl-loop for a from 0 to max
-                         for next = (+ a 1)
-                         do (cl-loop for b from next to len
-                                     if (not (validp (nth a update) (nth b update) rules))
-                                     do (setq invalid t)
-                                     and do (print (list (nth a update) (nth b update)))
-                                     and return nil)
-                         if invalid return nil)
-             if invalid do (push update valid)
-             finally return valid)))
+             with pairs = nil
+             if (find-invalid-pair update rules)
+             do (push update pairs)
+             finally return (list pairs rules))))
+
+(defun swap (update pair)
+  (cl-destructuring-bind (a b) pair
+    (let ((a-val (nth a update))
+          (b-val (nth b update)))
+      (setf (nth a update) b-val)
+      (setf (nth b update) a-val)
+      update)))
+
+(defun fix-invalid (update rules)
+  (cl-loop while t
+           with next = update
+           with pair = nil
+           do (setq pair (find-invalid-pair next rules))
+           if (eq nil pair) return next
+           else do (setq next (swap update pair))))
 
 (defun middle (lst)
   (nth (ceiling (/ (length lst) 2)) lst))
@@ -80,18 +85,19 @@
        (apply '+)))
 
 (defun 2024-05-part2 (input)
-  (->> (parse-input input)
-       (collect-and-fix-invalid)
-       ;; (mapcar 'middle)
-       ;; (apply '+)
-       ))
+  (-<>> (parse-input input)
+        (collect-invalid)
+        (cl-destructuring-bind (pairs rules) <>
+          (mapcar (lambda (x) (fix-invalid x rules)) pairs))
+        (mapcar 'middle)
+        (apply '+)))
 
 (defconst testfile (expand-file-name "input/05.test.txt"))
 (defconst inputfile (expand-file-name "input/05.input.txt"))
 
 (defcheck* 2024-05-part1 testfile 143)
 (defcheck* 2024-05-part1 inputfile 6041)
-;; (defcheck 2024-02-part2 testfile 4)
-;; (defcheck 2024-02-part2 inputfile 612)
+(defcheck* 2024-05-part2 testfile 123)
+(defcheck* 2024-05-part2 inputfile 4884)
 
 (solve "2024-05")
